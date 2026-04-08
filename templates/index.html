@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Buscador de Grants LACCEI</title>
+    <!-- Usar TailwindCSS para lograr un MVP con una interfaz simple, limpia y rápida -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .saved-icon {
+            color: #f59e0b;
+        }
+
+        /* Naranja/Ámbar de 'Guardado' */
+        .unsaved-icon {
+            color: #d1d5db;
+        }
+
+        /* Gris de 'No Guardado' */
+        .saved-icon:hover,
+        .unsaved-icon:hover {
+            color: #d97706;
+            cursor: pointer;
+        }
+    </style>
+</head>
+
+<body class="bg-gray-100 min-h-screen text-gray-800 font-sans">
+
+    <!-- Navegación -->
+    <nav class="bg-blue-800 text-white shadow-md">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-16">
+                <div class="flex items-center">
+                    <span class="font-bold text-xl tracking-tight">Buscador de Grants LACCEI</span>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <main class="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
+
+        <!-- Formularios de Filtros -->
+        <div class="bg-white p-6 rounded-lg shadow-sm border border-gray-200 mb-6">
+            <h2 class="text-lg font-semibold text-gray-700 mb-4 flex items-center">
+                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z">
+                    </path>
+                </svg>
+                Filtros de búsqueda
+            </h2>
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-600 mb-1">Palabra Clave</label>
+                    <input type="text" id="filter-keyword" placeholder="Ej. innovación, sistema..."
+                        class="block w-full rounded-md border-gray-300 shadow-sm p-2 border focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-600 mb-1">Región</label>
+                    <select id="filter-region"
+                        class="block w-full rounded-md border-gray-300 shadow-sm p-2 border focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                        <option value="Todas">Todas</option>
+                        <option value="Europa">Europa</option>
+                        <option value="Estados Unidos">Estados Unidos</option>
+                        <option value="Latinoamérica">Latinoamérica</option>
+                        <option value="Europa/Latinoamérica">Europa/Latinoamérica</option>
+                        <option value="Global">Global</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-600 mb-1">Tipo de proyecto</label>
+                    <select id="filter-type"
+                        class="block w-full rounded-md border-gray-300 shadow-sm p-2 border focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                        <option value="Todos">Todos</option>
+                        <option value="Investigación">Investigación</option>
+                        <option value="Innovación">Innovación</option>
+                        <option value="Educación">Educación</option>
+                        <option value="Desarrollo">Desarrollo</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-600 mb-1">Ver</label>
+                    <select id="filter-status"
+                        class="block w-full rounded-md border-gray-300 shadow-sm p-2 border focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                        <option value="all">Todas las oportunidades</option>
+                        <option value="saved">Solo Guardados ⭐</option>
+                    </select>
+                </div>
+            </div>
+            <div class="mt-5 flex justify-end">
+                <button onclick="loadGrants()"
+                    class="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-6 rounded-md shadow-sm transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                    Buscar
+                </button>
+            </div>
+        </div>
+
+        <!-- Contenedor de Resultados -->
+        <div id="grants-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <!-- Los grants se inyectan aquí con JavaScript -->
+        </div>
+    </main>
+
+    <script>
+        // Cargar las oportunidades al iniciar la página
+        document.addEventListener('DOMContentLoaded', loadGrants);
+
+        async function loadGrants() {
+            // Leer valores de los filtros
+            const keyword = document.getElementById('filter-keyword').value;
+            const region = document.getElementById('filter-region').value;
+            const type = document.getElementById('filter-type').value;
+            const status = document.getElementById('filter-status').value;
+
+            // Construir la URL de una forma más segura (compatible en todos los navegadores)
+            const queryParams = new URLSearchParams({
+                keyword: keyword,
+                region: region,
+                type: type,
+                status: status
+            });
+
+            try {
+                const response = await fetch('/api/grants?' + queryParams.toString());
+                const grants = await response.json();
+                renderGrants(grants);
+            } catch (error) {
+                console.error('Error cargando grants:', error);
+                document.getElementById('grants-container').innerHTML = '<p class="col-span-full text-center text-red-500">Error al cargar las oportunidades. Revisa si el servidor Flask está corriendo.</p>';
+            }
+        }
+
+        function renderGrants(grants) {
+            const container = document.getElementById('grants-container');
+            container.innerHTML = ''; // Limpiar grilla
+
+            if (grants.length === 0) {
+                container.innerHTML = '<p class="col-span-full text-center text-gray-500 py-10 text-lg">No se encontraron oportunidades con los filtros seleccionados.</p>';
+                return;
+            }
+
+            grants.forEach(grant => {
+                const card = document.createElement('div');
+                card.className = 'bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden flex flex-col hover:shadow-md transition-shadow duration-300';
+
+                const saveIconClass = grant.saved ? 'saved-icon' : 'unsaved-icon';
+                const saveIconFill = grant.saved ? 'currentColor' : 'none';
+
+                // Formatear colores base según tipo para el diseño
+                let typeColor = "bg-blue-100 text-blue-800";
+                if (grant.type === "Investigación") typeColor = "bg-purple-100 text-purple-800";
+                if (grant.type === "Innovación") typeColor = "bg-green-100 text-green-800";
+                if (grant.type === "Desarrollo") typeColor = "bg-orange-100 text-orange-800";
+
+                card.innerHTML = `
+                    <div class="p-6 flex-grow">
+                        <div class="flex justify-between items-start mb-3">
+                            <span class="inline-block px-2.5 py-1 ${typeColor} text-xs font-semibold rounded-md">${grant.type}</span>
+                            <button onclick="toggleSave(${grant.id})" class="focus:outline-none tooltip" title="Guardar/Desguardar">
+                                <svg class="w-6 h-6 ${saveIconClass} transition-colors" id="icon-${grant.id}" fill="${saveIconFill}" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 5v16l7-7 7 7V5a2 2 0 00-2-2H7a2 2 0 00-2 2z"></path>
+                                </svg>
+                            </button>
+                        </div>
+                        <h3 class="text-lg font-bold text-gray-900 mb-2 leading-tight">${grant.title}</h3>
+                        <p class="text-gray-600 text-sm mb-5 line-clamp-3">${grant.description}</p>
+                        
+                        <div class="flex flex-col text-sm text-gray-500 space-y-2 mt-auto">
+                            <div class="flex items-center">
+                                <svg class="w-4 h-4 mr-2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path></svg>
+                                <span class="font-medium">${grant.source}</span>
+                            </div>
+                            <div class="flex items-center">
+                                <svg class="w-4 h-4 mr-2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                                <span>${grant.region}</span>
+                            </div>
+                            <div class="flex items-center text-red-600 font-medium">
+                                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                                <span>Deadline: ${formatDate(grant.deadline)}</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="bg-gray-50 p-4 border-t border-gray-100 flex justify-center">
+                        <a href="${grant.url}" target="_blank" class="text-sm font-medium text-blue-600 hover:text-blue-800 flex items-center transition-colors">
+                            Ver detalles en sitio oficial
+                            <svg class="w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path></svg>
+                        </a>
+                    </div>
+                `;
+                container.appendChild(card);
+            });
+        }
+
+        async function toggleSave(grantId) {
+            try {
+                const response = await fetch(`/api/grants/${grantId}/toggle_save`, {
+                    method: 'POST'
+                });
+                const result = await response.json();
+
+                if (result.success) {
+                    const icon = document.getElementById(`icon-${grantId}`);
+                    if (result.saved) {
+                        icon.classList.remove('unsaved-icon');
+                        icon.classList.add('saved-icon');
+                        icon.setAttribute('fill', 'currentColor');
+                    } else {
+                        icon.classList.remove('saved-icon');
+                        icon.classList.add('unsaved-icon');
+                        icon.setAttribute('fill', 'none');
+                    }
+
+                    // Si el filtro "Solo Guardados" está activo, y se desguardó el elemento, refrescamos la lista
+                    const status = document.getElementById('filter-status').value;
+                    if (status === 'saved' && !result.saved) {
+                        loadGrants();
+                    }
+                }
+            } catch (error) {
+                console.error('Error al guardar:', error);
+                alert('Hubo un error al guardar el grant.');
+            }
+        }
+
+        function formatDate(dateString) {
+            // Convierte YYYY-MM-DD a formato legible
+            const options = { year: 'numeric', month: 'short', day: 'numeric' };
+            const date = new Date(dateString + 'T00:00:00'); // forzar zona horaria local
+            return date.toLocaleDateString('es-ES', options);
+        }
+
+        // Detectar si el usuario presiona Enter en el input de búsqueda
+        document.getElementById('filter-keyword').addEventListener('keypress', function (e) {
+            if (e.key === 'Enter') {
+                loadGrants();
+            }
+        });
+    </script>
+</body>
+
+</html>
